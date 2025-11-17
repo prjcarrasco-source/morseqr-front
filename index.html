@@ -177,10 +177,13 @@
             const convertBtn = document.getElementById('convertBtn');
             const loading = document.getElementById('loading');
             const errorDiv = document.getElementById('error');
+            const qrContainer = document.getElementById('qrContainer');
+            const qrImage = document.getElementById('qrImage');
 
             // Limpiar mensajes previos
             errorDiv.style.display = 'none';
             morseOutput.value = '';
+            qrContainer.style.display = 'none';
 
             // Validar entrada
             if (!textInput.trim()) {
@@ -214,6 +217,24 @@
 
                 const data = await response.json();
                 morseOutput.value = data.morse;
+
+                // Debug
+                console.log('Datos recibidos:', data);
+                console.log('QR Code presente:', !!data.qrCode);
+
+                // Mostrar QR si está disponible
+                if (data.qrCode) {
+                    console.log('Mostrando QR...');
+                    qrImage.src = data.qrCode;
+                    qrContainer.style.display = 'block';
+                    console.log('QR container display:', qrContainer.style.display);
+                } else if (data.qrError) {
+                    console.log('Error en QR:', data.qrError);
+                    errorDiv.textContent = data.qrError;
+                    errorDiv.style.display = 'block';
+                } else {
+                    console.log('No hay qrCode en la respuesta');
+                }
 
             } catch (error) {
                 errorDiv.textContent = `Error al conectar con la API: ${error.message}. Verifica que la URL sea correcta.`;

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Convertidor a Código Morse</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: #333;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+
+        textarea, input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1em;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus, input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        textarea {
+            min-height: 120px;
+        }
+
+        #morseOutput {
+            background-color: #f5f5f5;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2em;
+            min-height: 120px;
+        }
+
+        button {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            display: none;
+        }
+
+        .config {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 25px;
+        }
+
+        .config label {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .config input {
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔊 Convertidor a Código Morse</h1>
+        
+        <div class="config">
+            <label for="apiUrl">URL de tu API:</label>
+            <input type="text" id="apiUrl" placeholder="https://tu-api.onrender.com/morse">
+        </div>
+
+        <div class="input-group">
+            <label for="textInput">Ingresa tu texto:</label>
+            <textarea id="textInput" placeholder="Escribe aquí el texto que quieres convertir..."></textarea>
+        </div>
+
+        <button id="convertBtn" onclick="convertToMorse()">Convertir a Morse</button>
+
+        <div class="loading" id="loading">Convirtiendo...</div>
+        <div class="error" id="error"></div>
+
+        <div class="input-group" style="margin-top: 25px;">
+            <label for="morseOutput">Código Morse:</label>
+            <textarea id="morseOutput" readonly placeholder="Aquí aparecerá el código morse..."></textarea>
+        </div>
+
+        <div class="input-group" id="qrContainer" style="display: none;">
+            <label>Código QR de tu texto:</label>
+            <div style="text-align: center; background-color: #f5f5f5; padding: 20px; border-radius: 10px;">
+                <img id="qrImage" alt="Código QR" style="max-width: 300px; width: 100%;">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function convertToMorse() {
+            const textInput = document.getElementById('textInput').value;
+            const apiUrl = document.getElementById('apiUrl').value;
+            const morseOutput = document.getElementById('morseOutput');
+            const convertBtn = document.getElementById('convertBtn');
+            const loading = document.getElementById('loading');
+            const errorDiv = document.getElementById('error');
+
+            // Limpiar mensajes previos
+            errorDiv.style.display = 'none';
+            morseOutput.value = '';
+
+            // Validar entrada
+            if (!textInput.trim()) {
+                errorDiv.textContent = 'Por favor ingresa un texto para convertir.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            if (!apiUrl.trim()) {
+                errorDiv.textContent = 'Por favor ingresa la URL de tu API.';
+                errorDiv.style.display = 'block';
+                return;
+            }
+
+            // Mostrar loading
+            convertBtn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ text: textInput })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                morseOutput.value = data.morse;
+
+            } catch (error) {
+                errorDiv.textContent = `Error al conectar con la API: ${error.message}. Verifica que la URL sea correcta.`;
+                errorDiv.style.display = 'block';
+                console.error('Error:', error);
+            } finally {
+                convertBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        // Permitir convertir con Enter (Ctrl+Enter en textarea)
+        document.getElementById('textInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                convertToMorse();
+            }
+        });
+    </script>
+</body>
+</html>
